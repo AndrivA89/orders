@@ -2,9 +2,8 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
-	"github.com/AndrivA89/orders/internal/domain/entities"
+	"github.com/AndrivA89/orders/internal/domain/services"
 	"github.com/AndrivA89/orders/internal/transport/http/dto"
 
 	"github.com/gin-gonic/gin"
@@ -12,16 +11,12 @@ import (
 )
 
 type UserHandler struct {
-	users []entities.User
+	userService services.UserService
 }
 
-func (h *UserHandler) GetUsers() []entities.User {
-	return h.users
-}
-
-func NewUserHandler() *UserHandler {
+func NewUserHandler(userService services.UserService) *UserHandler {
 	return &UserHandler{
-		users: make([]entities.User, 0),
+		userService: userService,
 	}
 }
 
@@ -33,24 +28,13 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 		return
 	}
 
-	isMarried := false
-	if req.IsMarried != nil {
-		isMarried = *req.IsMarried
+	user, err := h.userService.RegisterUser(c.Request.Context(), req.ToServiceRequest())
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	user := entities.User{
-		ID:        uuid.New(),
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		Age:       req.Age,
-		IsMarried: isMarried,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-
-	h.users = append(h.users, user)
-
-	c.JSON(http.StatusCreated, dto.ToUserResponse(&user))
+	c.JSON(http.StatusCreated, dto.ToUserResponse(user))
 }
 
 func (h *UserHandler) GetUser(c *gin.Context) {
@@ -61,12 +45,11 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
-	for _, user := range h.users {
-		if user.ID == userID {
-			c.JSON(http.StatusOK, dto.ToUserResponse(&user))
-			return
-		}
+	user, err := h.userService.GetUserByID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+	c.JSON(http.StatusOK, dto.ToUserResponse(user))
 }

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/AndrivA89/orders/internal/domain/entities"
+	"github.com/AndrivA89/orders/internal/domain/services"
 
 	"github.com/google/uuid"
 )
@@ -16,6 +17,21 @@ type CreateOrderRequest struct {
 type OrderItemRequest struct {
 	ProductID uuid.UUID `json:"product_id" binding:"required"`
 	Quantity  int       `json:"quantity" binding:"required,min=1"`
+}
+
+func (req *CreateOrderRequest) ToServiceRequest() *services.OrderRequest {
+	items := make([]services.OrderItemRequest, 0, len(req.Items))
+	for _, item := range req.Items {
+		items = append(items, services.OrderItemRequest{
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+		})
+	}
+
+	return &services.OrderRequest{
+		UserID: req.UserID,
+		Items:  items,
+	}
 }
 
 type OrderResponse struct {
