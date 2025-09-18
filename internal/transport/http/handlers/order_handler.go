@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/AndrivA89/orders/internal/domain/entities"
 	domainErrors "github.com/AndrivA89/orders/internal/domain/errors"
+	"github.com/AndrivA89/orders/internal/domain/services"
 	"github.com/AndrivA89/orders/internal/transport/http/dto"
 
 	"github.com/gin-gonic/gin"
@@ -13,16 +13,12 @@ import (
 )
 
 type OrderHandler struct {
-	orders   []entities.Order
-	products []entities.Product
-	users    []entities.User
+	orderService services.OrderService
 }
 
-func NewOrderHandler(productHandler *ProductHandler, userHandler *UserHandler) *OrderHandler {
+func NewOrderHandler(orderService services.OrderService) *OrderHandler {
 	return &OrderHandler{
-		orders:   make([]entities.Order, 0),
-		products: productHandler.GetProductsData(),
-		users:    userHandler.GetUsers(),
+		orderService: orderService,
 	}
 }
 
@@ -34,34 +30,11 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		return
 	}
 
-	// Check if user exists
-	if !h.userExists(req.UserID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": domainErrors.ErrUserNotFound.Error()})
+	order, err := h.orderService.CreateOrder(c.Request.Context(), req.ToServiceRequest())
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	order := entities.NewOrder(req.UserID)
-
-	// Add items to order
-	for _, itemReq := range req.Items {
-		product := h.findProductByID(itemReq.ProductID)
-		if product == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": domainErrors.ErrProductNotFound.Error()})
-			return
-		}
-
-		if err := order.AddItem(product, itemReq.Quantity); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-	}
-
-	if len(order.Items) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": domainErrors.ErrOrderMustHaveItems.Error()})
-		return
-	}
-
-	h.orders = append(h.orders, *order)
 
 	c.JSON(http.StatusCreated, dto.ToOrderResponse(order))
 }
@@ -74,14 +47,13 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 		return
 	}
 
-	for _, order := range h.orders {
-		if order.ID == orderID {
-			c.JSON(http.StatusOK, dto.ToOrderResponse(&order))
-			return
-		}
+	order, err := h.orderService.GetOrderByID(c.Request.Context(), orderID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": domainErrors.ErrOrderNotFound.Error()})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"error": domainErrors.ErrOrderNotFound.Error()})
+	c.JSON(http.StatusOK, dto.ToOrderResponse(order))
 }
 
 func (h *OrderHandler) GetOrdersByUser(c *gin.Context) {
@@ -98,25 +70,10 @@ func (h *OrderHandler) GetOrdersByUser(c *gin.Context) {
 	limit, _ := strconv.Atoi(limitStr)
 	offset, _ := strconv.Atoi(offsetStr)
 
-	// Find orders by user
-	var userOrders []*entities.Order
-	for i, order := range h.orders {
-		if order.UserID == userID {
-			userOrders = append(userOrders, &h.orders[i])
-		}
-	}
-
-	total := len(userOrders)
-	orders := userOrders
-
-	if offset >= total {
-		orders = []*entities.Order{}
-	} else {
-		end := offset + limit
-		if end > total {
-			end = total
-		}
-		orders = userOrders[offset:end]
+	orders, err := h.orderService.GetOrdersByUserID(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, dto.ToOrderListResponse(orders, limit, offset))
@@ -130,20 +87,18 @@ func (h *OrderHandler) ConfirmOrder(c *gin.Context) {
 		return
 	}
 
-	for i, order := range h.orders {
-		if order.ID == orderID {
-			if err := order.Confirm(); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-
-			h.orders[i] = order
-			c.JSON(http.StatusOK, dto.ToOrderResponse(&order))
-			return
-		}
+	if err := h.orderService.ConfirmOrder(c.Request.Context(), orderID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"error": domainErrors.ErrOrderNotFound.Error()})
+	order, err := h.orderService.GetOrderByID(c.Request.Context(), orderID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ToOrderResponse(order))
 }
 
 func (h *OrderHandler) CancelOrder(c *gin.Context) {
@@ -154,36 +109,16 @@ func (h *OrderHandler) CancelOrder(c *gin.Context) {
 		return
 	}
 
-	for i, order := range h.orders {
-		if order.ID == orderID {
-			if err := order.Cancel(); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-
-			h.orders[i] = order
-			c.JSON(http.StatusOK, dto.ToOrderResponse(&order))
-			return
-		}
+	if err := h.orderService.CancelOrder(c.Request.Context(), orderID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"error": domainErrors.ErrOrderNotFound.Error()})
-}
-
-func (h *OrderHandler) userExists(userID uuid.UUID) bool {
-	for _, user := range h.users {
-		if user.ID == userID {
-			return true
-		}
+	order, err := h.orderService.GetOrderByID(c.Request.Context(), orderID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	return false
-}
 
-func (h *OrderHandler) findProductByID(productID uuid.UUID) *entities.Product {
-	for i, product := range h.products {
-		if product.ID == productID {
-			return &h.products[i]
-		}
-	}
-	return nil
+	c.JSON(http.StatusOK, dto.ToOrderResponse(order))
 }

@@ -3,9 +3,8 @@ package handlers
 import (
 	"net/http"
 	"strconv"
-	"time"
 
-	"github.com/AndrivA89/orders/internal/domain/entities"
+	"github.com/AndrivA89/orders/internal/domain/services"
 	"github.com/AndrivA89/orders/internal/transport/http/dto"
 
 	"github.com/gin-gonic/gin"
@@ -13,16 +12,12 @@ import (
 )
 
 type ProductHandler struct {
-	products []entities.Product
+	productService services.ProductService
 }
 
-func (h *ProductHandler) GetProductsData() []entities.Product {
-	return h.products
-}
-
-func NewProductHandler() *ProductHandler {
+func NewProductHandler(productService services.ProductService) *ProductHandler {
 	return &ProductHandler{
-		products: make([]entities.Product, 0),
+		productService: productService,
 	}
 }
 
@@ -34,19 +29,13 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	product := entities.Product{
-		ID:          uuid.New(),
-		Description: req.Description,
-		Tags:        req.Tags,
-		Quantity:    req.Quantity,
-		Price:       req.Price,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+	product, err := h.productService.CreateProduct(c.Request.Context(), req.ToServiceRequest())
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	h.products = append(h.products, product)
-
-	c.JSON(http.StatusCreated, dto.ToProductResponse(&product))
+	c.JSON(http.StatusCreated, dto.ToProductResponse(product))
 }
 
 func (h *ProductHandler) GetProducts(c *gin.Context) {
@@ -56,27 +45,20 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 	limit, _ := strconv.Atoi(limitStr)
 	offset, _ := strconv.Atoi(offsetStr)
 
-	total := len(h.products)
-	products := h.products
-
-	if offset >= total {
-		products = []entities.Product{}
-	} else {
-		end := offset + limit
-		if end > total {
-			end = total
-		}
-		products = h.products[offset:end]
+	products, err := h.productService.GetProducts(c.Request.Context(), limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	responses := make([]*dto.ProductResponse, len(products))
 	for i, product := range products {
-		responses[i] = dto.ToProductResponse(&product)
+		responses[i] = dto.ToProductResponse(product)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"products": responses,
-		"total":    total,
+		"total":    len(products),
 		"limit":    limit,
 		"offset":   offset,
 	})
@@ -90,12 +72,11 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 		return
 	}
 
-	for _, product := range h.products {
-		if product.ID == productID {
-			c.JSON(http.StatusOK, dto.ToProductResponse(&product))
-			return
-		}
+	product, err := h.productService.GetProductByID(c.Request.Context(), productID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+	c.JSON(http.StatusOK, dto.ToProductResponse(product))
 }

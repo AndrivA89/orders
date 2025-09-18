@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/AndrivA89/orders/internal/domain/entities"
+	"github.com/AndrivA89/orders/internal/domain/services"
 
 	"github.com/google/uuid"
 )
@@ -13,6 +14,15 @@ type CreateProductRequest struct {
 	Tags        []string `json:"tags"`
 	Quantity    int      `json:"quantity" binding:"required,min=0"`
 	Price       int64    `json:"price" binding:"required,min=1"`
+}
+
+func (req *CreateProductRequest) ToServiceRequest() *services.CreateProductRequest {
+	return &services.CreateProductRequest{
+		Description: req.Description,
+		Tags:        req.Tags,
+		Quantity:    req.Quantity,
+		Price:       req.Price,
+	}
 }
 
 type ProductResponse struct {
