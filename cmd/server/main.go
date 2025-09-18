@@ -11,6 +11,7 @@ func main() {
 
 	userHandler := handlers.NewUserHandler()
 	productHandler := handlers.NewProductHandler()
+	orderHandler := handlers.NewOrderHandler(productHandler, userHandler)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -25,6 +26,7 @@ func main() {
 		{
 			users.POST("", userHandler.CreateUser)
 			users.GET("/:id", userHandler.GetUser)
+			users.GET("/:user_id/orders", orderHandler.GetOrdersByUser)
 		}
 
 		products := v1.Group("/products")
@@ -34,11 +36,13 @@ func main() {
 			products.GET("/:id", productHandler.GetProduct)
 		}
 
-		v1.GET("/orders", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"message": "Orders endpoint - coming soon",
-			})
-		})
+		orders := v1.Group("/orders")
+		{
+			orders.POST("", orderHandler.CreateOrder)
+			orders.GET("/:id", orderHandler.GetOrder)
+			orders.PATCH("/:id/confirm", orderHandler.ConfirmOrder)
+			orders.PATCH("/:id/cancel", orderHandler.CancelOrder)
+		}
 	}
 
 	r.Run(":8080")
