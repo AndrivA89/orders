@@ -15,6 +15,10 @@ type UserHandler struct {
 	users []entities.User
 }
 
+func (h *UserHandler) GetUsers() []entities.User {
+	return h.users
+}
+
 func NewUserHandler() *UserHandler {
 	return &UserHandler{
 		users: make([]entities.User, 0),
