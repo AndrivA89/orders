@@ -6,6 +6,7 @@ import (
 
 	"github.com/AndrivA89/orders/internal/domain/services"
 	"github.com/AndrivA89/orders/internal/transport/http/dto"
+	"github.com/AndrivA89/orders/internal/transport/http/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -25,13 +26,13 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	var req dto.CreateProductRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		middleware.HandleValidationError(c, err)
 		return
 	}
 
 	product, err := h.productService.CreateProduct(c.Request.Context(), req.ToServiceRequest())
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		middleware.HandleValidationError(c, err)
 		return
 	}
 
@@ -47,7 +48,7 @@ func (h *ProductHandler) GetProducts(c *gin.Context) {
 
 	products, err := h.productService.GetProducts(c.Request.Context(), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		middleware.HandleInternalError(c, err)
 		return
 	}
 
@@ -68,13 +69,13 @@ func (h *ProductHandler) GetProduct(c *gin.Context) {
 	idParam := c.Param("id")
 	productID, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product ID format"})
+		middleware.HandleValidationError(c, err)
 		return
 	}
 
 	product, err := h.productService.GetProductByID(c.Request.Context(), productID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
+		middleware.HandleNotFoundError(c, err)
 		return
 	}
 
