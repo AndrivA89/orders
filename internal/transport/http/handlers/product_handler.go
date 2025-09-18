@@ -16,6 +16,10 @@ type ProductHandler struct {
 	products []entities.Product
 }
 
+func (h *ProductHandler) GetProductsData() []entities.Product {
+	return h.products
+}
+
 func NewProductHandler() *ProductHandler {
 	return &ProductHandler{
 		products: make([]entities.Product, 0),
