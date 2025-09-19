@@ -57,7 +57,7 @@ func (r *Router) SetupRoutes() *gin.Engine {
 				middleware.RateLimitMiddleware(rate.Every(time.Minute/5), 2),
 				r.userHandler.CreateUser)
 			users.GET("/:id", r.userHandler.GetUser)
-			users.GET("/:user_id/orders", r.orderHandler.GetOrdersByUser)
+			users.GET("/:id/orders", r.orderHandler.GetOrdersByUser)
 		}
 
 		products := v1.Group("/products")

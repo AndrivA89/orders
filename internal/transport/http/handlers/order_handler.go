@@ -58,7 +58,7 @@ func (h *OrderHandler) GetOrder(c *gin.Context) {
 }
 
 func (h *OrderHandler) GetOrdersByUser(c *gin.Context) {
-	userIDParam := c.Param("user_id")
+	userIDParam := c.Param("id")
 	userID, err := uuid.Parse(userIDParam)
 	if err != nil {
 		middleware.HandleValidationError(c, domainErrors.ErrInvalidUserID)
