@@ -45,6 +45,16 @@ func (r *productRepository) GetByID(ctx context.Context, id uuid.UUID) (*entitie
 	return model.ToEntity(), nil
 }
 
+func (r *productRepository) GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*entities.Product, error) {
+	var model models.ProductModel
+	// SELECT ... FOR UPDATE для предотвращения race conditions
+	if err := r.db.WithContext(ctx).Set("gorm:query_option", "FOR UPDATE").First(&model, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+
+	return model.ToEntity(), nil
+}
+
 func (r *productRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Product, error) {
 	var models []models.ProductModel
 	if err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&models).Error; err != nil {
