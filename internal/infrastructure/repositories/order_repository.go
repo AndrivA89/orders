@@ -54,17 +54,17 @@ func (r *orderRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.
 }
 
 func (r *orderRepository) GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*entities.Order, error) {
-	var models []models.OrderModel
+	var orderModels []models.OrderModel
 	if err := r.db.WithContext(ctx).
 		Preload("Items").
 		Where("user_id = ?", userID).
 		Limit(limit).Offset(offset).
-		Find(&models).Error; err != nil {
+		Find(&orderModels).Error; err != nil {
 		return nil, err
 	}
 
-	result := make([]*entities.Order, len(models))
-	for i, model := range models {
+	result := make([]*entities.Order, len(orderModels))
+	for i, model := range orderModels {
 		order, err := model.ToEntity()
 		if err != nil {
 			return nil, err

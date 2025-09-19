@@ -56,13 +56,13 @@ func (r *productRepository) GetByIDForUpdate(ctx context.Context, id uuid.UUID) 
 }
 
 func (r *productRepository) GetAll(ctx context.Context, limit, offset int) ([]*entities.Product, error) {
-	var models []models.ProductModel
-	if err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&models).Error; err != nil {
+	var productModels []models.ProductModel
+	if err := r.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&productModels).Error; err != nil {
 		return nil, err
 	}
 
-	result := make([]*entities.Product, len(models))
-	for i, model := range models {
+	result := make([]*entities.Product, len(productModels))
+	for i, model := range productModels {
 		result[i] = model.ToEntity()
 	}
 

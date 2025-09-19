@@ -1,30 +1,25 @@
-.PHONY: help db-up db-down run test build clean
+.PHONY: help run stop test clean build docker-up docker-down
 
 # Показать помощь
 help:
 	@echo "Доступные команды:"
-	@echo "  db-up        - Запустить PostgreSQL в Docker"
-	@echo "  db-down      - Остановить PostgreSQL Docker контейнер"
-	@echo "  run          - Запустить приложение локально"
+	@echo "  run          - Запустить все сервисы через Docker Compose"
+	@echo "  stop  		  - Остановить все сервисы Docker"
 	@echo "  test         - Запустить тесты"
 	@echo "  build        - Собрать приложение"
 	@echo "  clean        - Очистить сгенерированные файлы"
 
-# Запустить PostgreSQL через Docker
-db-up:
-	@echo "Запуск PostgreSQL..."
-	docker compose up postgres -d
-	@echo "PostgreSQL доступен на localhost:5432"
-
-# Остановить PostgreSQL Docker
-db-down:
-	@echo "Остановка PostgreSQL..."
-	docker compose down
-
-# Запустить приложение локально
+# Запустить через Docker Compose
 run:
-	@echo "Запуск приложения..."
-	go run cmd/server/main.go
+	@echo "Запуск приложения через Docker Compose..."
+	docker compose up -d
+	@echo "Приложение доступно на http://localhost:8080"
+	@echo "Проверка здоровья: curl http://localhost:8080/health"
+
+# Остановить Docker сервисы
+stop:
+	@echo "Остановка Docker сервисов..."
+	docker compose down
 
 # Запустить тесты
 test:
@@ -36,6 +31,11 @@ build:
 	@echo "Сборка приложения..."
 	go build -o bin/orders cmd/server/main.go
 	@echo "Приложение собрано в bin/orders"
+
+# Генерировать моки
+generate:
+	@echo "Генерация моков..."
+	go generate ./internal/domain/repositories/
 
 # Очистить сгенерированные файлы
 clean:
