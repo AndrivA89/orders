@@ -40,11 +40,12 @@ func main() {
 	userRepo := infraRepos.NewUserRepository(db.DB)
 	productRepo := infraRepos.NewProductRepository(db.DB)
 	orderRepo := infraRepos.NewOrderRepository(db.DB)
+	txManager := infraRepos.NewTransactionManager(db.DB)
 
 	// Initialize services
 	userService := appServices.NewUserService(userRepo)
 	productService := appServices.NewProductService(productRepo)
-	orderService := appServices.NewOrderService(orderRepo, userRepo, productRepo)
+	orderService := appServices.NewOrderService(orderRepo, userRepo, productRepo, txManager)
 
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)

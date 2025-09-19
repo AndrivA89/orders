@@ -86,6 +86,21 @@ func (mr *MockProductRepositoryMockRecorder) GetByID(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockProductRepository)(nil).GetByID), ctx, id)
 }
 
+// GetByIDForUpdate mocks base method.
+func (m *MockProductRepository) GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*entities.Product, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByIDForUpdate", ctx, id)
+	ret0, _ := ret[0].(*entities.Product)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetByIDForUpdate indicates an expected call of GetByIDForUpdate.
+func (mr *MockProductRepositoryMockRecorder) GetByIDForUpdate(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByIDForUpdate", reflect.TypeOf((*MockProductRepository)(nil).GetByIDForUpdate), ctx, id)
+}
+
 // Update mocks base method.
 func (m *MockProductRepository) Update(ctx context.Context, product *entities.Product) error {
 	m.ctrl.T.Helper()

@@ -14,6 +14,7 @@ import (
 type ProductRepository interface {
 	Create(ctx context.Context, product *entities.Product) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entities.Product, error)
+	GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*entities.Product, error)
 	GetAll(ctx context.Context, limit, offset int) ([]*entities.Product, error)
 	Update(ctx context.Context, product *entities.Product) error
 }

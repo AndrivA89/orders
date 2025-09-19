@@ -8,6 +8,7 @@ var (
 	ErrLastNameRequired  = errors.New("last name is required")
 	ErrUserTooYoung      = errors.New("user must be at least 18 years old")
 	ErrPasswordTooShort  = errors.New("password must be at least 8 characters long")
+	ErrUserNotFound      = errors.New("user not found")
 )
 
 // Product domain errors
@@ -25,6 +26,7 @@ var (
 	ErrOnlyPendingCanConfirm   = errors.New("only pending orders can be confirmed")
 	ErrCannotConfirmEmptyOrder = errors.New("cannot confirm empty order")
 	ErrCompletedOrdersReadonly = errors.New("completed orders cannot be cancelled")
+	ErrOrderMustHaveItems      = errors.New("order must contain at least one item")
 	ErrOrderNotFound           = errors.New("order not found")
 )
 
